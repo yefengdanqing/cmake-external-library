@@ -1,0 +1,10 @@
+include(${CMAKE_CURRENT_LIST_DIR}/../check.cmake)
+function(Process)
+    PrepareDep(99b3c03b3284f5886f9ef9a4ef703d57373e61be)
+    DownloadDep(GIT_REPOSITORY https://github.com/google/leveldb.git
+            SPEED_UP_FILE ${_DEP_NAME}-submodule-${_DEP_VER}.tar.gz)
+    Ninja()
+    PostProcess()
+endfunction(Process)
+Process()
+ProcessAddLibrary()

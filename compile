@@ -1,0 +1,65 @@
+#!/bin/bash
+set -x
+FP="$(
+  cd "$(dirname "$0")" || exit
+  pwd -P
+)"
+BASEDIR="$FP"
+IMAGE=sunzhenkai/cmake-external-library
+
+function UUID() {
+  python -c 'import uuid; print(uuid.uuid4())'
+}
+
+CONTAINER="cmake-external-library-debug"
+#CONTAINER="cmake-external-library-debug-$(UUID)"
+
+function CPUS() {
+  ([ "$(uname)" = 'Darwin' ] && sysctl -n hw.logicalcpu_max) || lscpu -p | grep -Evc '^#'
+}
+
+function StartContainer() {
+  docker start "$CONTAINER"
+}
+
+function CrateContainer() {
+  docker run -dt --net=host --name "${CONTAINER}" \
+    --privileged --security-opt seccomp=unconfined \
+    -e TERM=xterm-256color -v "$BASEDIR":/data \
+    ${IMAGE}
+}
+
+function RemoveDocker() {
+  docker stop "${CONTAINER}"
+  docker rm "${CONTAINER}"
+}
+
+function CheckContainer() {
+  docker ps -a | grep "$CONTAINER"
+  # shellcheck disable=SC2181
+  if [ ! $? -eq 0 ]; then
+    CrateContainer
+  else
+    StartContainer
+  fi
+}
+
+function Prepare() {
+  cd "$BASEDIR" || return 1
+  [ -e "build" ] && rm -r build
+  mkdir build
+}
+
+function Build() {
+  docker exec -t -w "/data/build" "${CONTAINER}" /bin/bash \
+    -c "export SPEED_UP_URL=\"$SPEED_UP_URL\" && cmake3 .. && make -j$(CPUS)"
+}
+
+Main() {
+  #  Prepare && CrateContainer && Build
+  #  RemoveDocker
+  CheckContainer
+  Build
+}
+
+Main

@@ -1,0 +1,12 @@
+include(${CMAKE_CURRENT_LIST_DIR}/../check.cmake)
+
+function(Process)
+    PrepareDep(1_1_1k MODULES ssl crypto)
+    DownloadDep(TAG OpenSSL_${_DEP_VER} SPEED_UP_FILE ${_DEP_NAME}-OpenSSL_${_DEP_VER}.tar.gz)
+    Configure()
+    MakeBuild()
+    MakeInstall()
+    PostProcess()
+endfunction(Process)
+Process()
+ProcessAddLibrary()

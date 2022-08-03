@@ -1,0 +1,10 @@
+include(${CMAKE_CURRENT_LIST_DIR}/../check.cmake)
+
+function(Process)
+    PrepareDep(2.2.2)
+    DownloadDep(TAG v${_DEP_VER} SPEED_UP_FILE ${_DEP_NAME}-${_DEP_VER}.tar.gz)
+    Ninja(ARGS -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=ON)
+    PostProcess()
+endfunction(Process)
+Process()
+ProcessAddLibrary()

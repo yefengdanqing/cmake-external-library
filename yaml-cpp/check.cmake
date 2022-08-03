@@ -1,0 +1,10 @@
+include(${CMAKE_CURRENT_LIST_DIR}/../check.cmake)
+
+function(Process)
+    PrepareDep(0.6.2 MODULES yaml-cpp)
+    DownloadDep(AUTHOR jbeder TAG ${_DEP_NAME}-${_DEP_VER} SPEED_UP_FILE ${_DEP_NAME}-${_DEP_NAME}-${_DEP_VER}.tar.gz)
+    Ninja(ARGS -DYAML_CPP_BUILD_TESTS=OFF -DYAML_CPP_BUILD_TOOLS=OFF)
+    PostProcess()
+endfunction(Process)
+Process()
+ProcessAddLibrary()

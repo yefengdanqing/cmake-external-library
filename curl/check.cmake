@@ -1,0 +1,13 @@
+include(${CMAKE_CURRENT_LIST_DIR}/../check.cmake)
+function(Process)
+    PrepareDep(7.81.0)
+    DownloadDep(TAG ${_DEP_NAME}-${_DEP_VER_} SPEED_UP_FILE ${_DEP_NAME}-${_DEP_NAME}-${_DEP_VER_}.tar.gz)
+    AutoReconf()
+    Configure(ARGS --with-openssl --enable-shared=no --disable-ldap --disable-ldaps --without-brotli
+            --without-libidn --without-libidn2)
+    MakeBuild()
+    MakeInstall()
+    PostProcess()
+endfunction(Process)
+Process()
+ProcessAddLibrary()

@@ -1,0 +1,11 @@
+include(${CMAKE_CURRENT_LIST_DIR}/../check.cmake)
+
+function(Process)
+    PrepareDep(1.9.3)
+    DownloadDep(TAG v${_DEP_VER} SPEED_UP_FILE ${_DEP_NAME}-${_DEP_VER}.tar.gz)
+    MakeBuild()
+    MakeInstall()
+    PostProcess()
+endfunction(Process)
+Process()
+ProcessAddLibrary()
