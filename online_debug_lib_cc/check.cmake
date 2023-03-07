@@ -1,0 +1,183 @@
+get_filename_component(_DEP_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
+string(TOUPPER ${_DEP_NAME} _DEP_UNAME)
+string(REPLACE "_" "-" _DEP_LNAME "${_DEP_NAME}")
+
+set(_DEP_BRANCH main)
+set(_DEP_TAG f6c03e7f8e3ff7bfcd89274863d86aee5cf44d0c)
+set(_DEP_URL git@gitlab.mobvista.com:spotmax/online_debug_lib_cc.git)
+set(_DEP_PREFIX ${${_DEP_UNAME}_PREFIX})
+
+if("${_DEP_PREFIX}" STREQUAL "")
+    if("${DEPS_DIR}" STREQUAL "")
+        set(_DEP_PREFIX ${CMAKE_CURRENT_LIST_DIR})
+    else()
+        set(_DEP_PREFIX ${DEPS_DIR}/${_DEP_NAME})
+    endif()
+    set(${_DEP_UNAME}_PREFIX ${_DEP_PREFIX})
+endif()
+if("${DEPS_DIR}" STREQUAL "")
+    get_filename_component(DEPS_DIR ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
+    message(STATUS "Dependencies directory has been set to: ${DEPS_DIR}")
+endif()
+message(STATUS "online-debug-path ${_DEP_UNAME}_PREFIX: ${_DEP_PREFIX}  ${DEPS_DIR}")
+
+CheckVersion()
+
+message(STATUS "${_DEP_PREFIX}/lib64/cmake/${_DEP_NAME}/${_DEP_NAME}-targets.cmake")
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/src")
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_LIST_DIR}/src)
+endif()
+if(NOT EXISTS ${_DEP_PREFIX}/lib64/libonline_debug_lib.a)
+    if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt)
+        message(STATUS "Cloning ${_DEP_NAME}: ${_DEP_URL}")
+        execute_process(
+            COMMAND git clone ${_DEP_URL} src
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+            RESULT_VARIABLE rc)
+        if(NOT "${rc}" STREQUAL "0")
+            message(FATAL_ERROR "Cloning ${_DEP_NAME}: ${_DEP_URL} - FAIL")
+        endif()
+        message(STATUS "Cloning ${_DEP_NAME}: ${_DEP_URL} - done")
+        message(STATUS "Checking out ${_DEP_NAME}: ${_DEP_TAG}")
+        execute_process(
+            COMMAND git checkout ${_DEP_TAG}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/src
+            RESULT_VARIABLE rc)
+        if(NOT "${rc}" STREQUAL "0")
+            message(FATAL_ERROR "Checking out ${_DEP_NAME}: ${_DEP_TAG} - FAIL")
+        endif()
+        message(STATUS "Checking out ${_DEP_NAME}: ${_DEP_TAG} - done")
+        message(STATUS "Updating ${_DEP_NAME}")
+        execute_process(
+            COMMAND git submodule update --init --recursive
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/src
+            RESULT_VARIABLE rc)
+        if(NOT "${rc}" STREQUAL "0")
+            message(FATAL_ERROR "Updating ${_DEP_NAME} - FAIL")
+        endif()
+        message(STATUS "Updating ${_DEP_NAME} - done")
+    endif()
+    if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/build/build.ninja)
+        file(MAKE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build)
+        message(STATUS "Configuring ${_DEP_NAME}")
+        execute_process(
+            COMMAND ${CMAKE_COMMAND}
+                    -G Ninja
+                    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                    -DCMAKE_INSTALL_PREFIX=${_DEP_PREFIX}
+                    -DBUILD_SHARED_LIBS=OFF
+                    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+                    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                    -DDEPS_DIR=${DEPS_DIR}
+                    -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
+                    ${CMAKE_CURRENT_LIST_DIR}/src/elasticlient
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build
+            RESULT_VARIABLE rc)
+        if(NOT "${rc}" STREQUAL "0")
+            message(FATAL_ERROR "Configuring ${_DEP_NAME} - FAIL")
+        endif()
+        message(STATUS "Configuring ${_DEP_NAME} - done")
+    endif()
+
+    # if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/build/lib${_DEP_NAME}.a)
+    #     message(STATUS "Building ${_DEP_NAME}")
+    #     execute_process(
+    #         COMMAND ninja
+    #         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build
+    #         RESULT_VARIABLE rc)
+    #     if(NOT "${rc}" STREQUAL "0")
+    #         message(FATAL_ERROR "Building ${_DEP_NAME} - FAIL")
+    #     endif()
+    #     message(STATUS "Building ${_DEP_NAME} - done")
+    # endif()
+    if(NOT EXISTS ${_DEP_PREFIX}/lib/lib${_DEP_NAME}.a)
+        message(STATUS "Installing ${_DEP_NAME}")
+        execute_process(
+            COMMAND ninja install
+            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build
+            RESULT_VARIABLE rc)
+        if(NOT "${rc}" STREQUAL "0")
+            message(FATAL_ERROR "Installing ${_DEP_NAME} - FAIL")
+        endif()
+        message(STATUS "Installing ${_DEP_NAME} - done")
+    endif()
+
+    # if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/build/lib/libonline_debug_lib_cc.a)
+    #     message(STATUS "Building ${_DEP_NAME}")
+    #     include(ProcessorCount)
+    #     ProcessorCount(cpus)
+    #     execute_process(
+    #         COMMAND env
+    #                 CC=${CMAKE_C_COMPILER}
+    #                 CXX=${CMAKE_CXX_COMPILER}
+    #                 make
+    #                 -j${cpus}
+    #         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build
+    #         RESULT_VARIABLE rc)
+    #     if(NOT "${rc}" STREQUAL "0")
+    #         message(FATAL_ERROR "Building ${_DEP_NAME} - FAIL")
+    #     endif()
+    #     message(STATUS "Building ${_DEP_NAME} - done")
+    # endif()
+    
+    
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_LIST_DIR}/src)
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_LIST_DIR}/build)
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_LIST_DIR}/packages)
+endif()
+
+if(EXISTS ${_DEP_PREFIX}/bin)
+    set(_DEP_BIN_DIR ${_DEP_PREFIX}/bin)
+    set(${_DEP_UNAME}_BIN_DIR ${_DEP_BIN_DIR})
+endif()
+# if(EXISTS ${_DEP_PREFIX}/lib)
+#     set(_DEP_LIB_DIR ${_DEP_PREFIX}/lib)
+#     set(${_DEP_UNAME}_LIB_DIR ${_DEP_LIB_DIR})
+# endif()
+if(EXISTS ${_DEP_PREFIX}/lib64)
+    set(_DEP_LIB_DIR ${_DEP_PREFIX}/lib64)
+    set(${_DEP_UNAME}_LIB_DIR ${_DEP_LIB_DIR})
+endif()
+if(EXISTS ${_DEP_PREFIX}/include)
+    set(_DEP_INCLUDE_DIR ${_DEP_PREFIX}/include)
+    set(${_DEP_UNAME}_INCLUDE_DIR ${_DEP_INCLUDE_DIR})
+endif()
+list(FIND CMAKE_PREFIX_PATH ${_DEP_PREFIX} _DEP_INDEX)
+if(_DEP_INDEX EQUAL -1)
+    list(APPEND CMAKE_PREFIX_PATH ${_DEP_PREFIX})
+endif()
+message("all path ${_DEP_INCLUDE_DIR} ${_DEP_BIN_DIR} ${_DEP_LIB_DIR}")
+
+if(NOT TARGET cpr::cpr AND EXISTS ${_DEP_LIB_DIR}/libcpr.a)
+    add_library(cpr::cpr STATIC IMPORTED)
+    set_target_properties(cpr::cpr PROPERTIES
+        IMPORTED_LOCATION "${_DEP_LIB_DIR}/libcpr.a"
+        INTERFACE_INCLUDE_DIRECTORIES "${_DEP_INCLUDE_DIR}")
+endif()
+
+if(NOT TARGET elasticlient::elasticlient AND EXISTS ${_DEP_LIB_DIR}/libelasticlient.a)
+    add_library(elasticlient::elasticlient STATIC IMPORTED)
+    set_target_properties(elasticlient::elasticlient PROPERTIES
+        IMPORTED_LOCATION "${_DEP_LIB_DIR}/libelasticlient.a"
+        INTERFACE_INCLUDE_DIRECTORIES "${_DEP_INCLUDE_DIR}")
+endif()
+
+if(NOT TARGET ${_DEP_NAME}::${_DEP_NAME} AND EXISTS ${_DEP_LIB_DIR}/libonline_debug_lib.a)
+    add_library(${_DEP_NAME}::${_DEP_NAME} STATIC IMPORTED)
+    set_target_properties(${_DEP_NAME}::${_DEP_NAME} PROPERTIES
+        IMPORTED_LOCATION "${_DEP_LIB_DIR}/libonline_debug_lib.a"
+        INTERFACE_INCLUDE_DIRECTORIES "${_DEP_INCLUDE_DIR}")
+endif()
+
+unset(_DEP_NAME)
+unset(_DEP_UNAME)
+unset(_DEP_LNAME)
+unset(_DEP_BRANCH)
+unset(_DEP_TAG)
+unset(_DEP_URL)
+unset(_DEP_PREFIX)
+unset(_DEP_BIN_DIR)
+unset(_DEP_LIB_DIR)
+unset(_DEP_INCLUDE_DIR)
+unset(_DEP_INDEX)

@@ -1,0 +1,5 @@
+FROM hub.mobvista.com/ml-platform/ml-platform-thirdparty-build:v2.0
+COPY  intel /opt/intel/
+RUN echo 'export LD_LIBRARY_PATH=/opt/intel/mkl/lib/intel64:$LD_LIBRARY_PATH' >> /root/.bashrc &&  \
+    echo "alias ll='ls -al'" >> /root/.bashrc
+

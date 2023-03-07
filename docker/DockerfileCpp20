@@ -1,0 +1,94 @@
+FROM centos:8
+MAINTAINER yafeng
+
+RUN export LANG=en_US.UTF-8
+RUN export LC_CTYPE=en_US.UTF-8
+RUN dnf install 'dnf-command(config-manager)' git patch wget which epel-release -y
+RUN dnf config-manager --set-enabled powertools && dnf install -y texinfo
+RUN dnf install -y python3-pip && pip3 install --upgrade pip
+RUN dnf install -y --enablerepo=epel        \
+                gnutls-devel                \
+                gcc-c++                     \
+                make                        \
+                diffutils                   \
+                file                        \
+                dpdk                        \
+                which sudo                  \
+                byacc bison flex libtool    \
+                systemtap-sdt-devel         \
+                patchelf openssl-devel      \
+                cryptopp-devel xz-devel     \
+                lksctp-tools-devel          \
+                unzip                       \
+                bzip2 bzip2-devel           \
+                libffi-devel                \
+                ninja-build                 \
+                libaio-devel                \
+                hwloc-devel                 \
+                numactl-devel               \ 
+                libpciaccess-devel          \
+                libxcb                      \
+                libX11-xcb                  \
+                libXScrnSaver               \
+                at-spi2-atk                 \
+                gtk3                        \
+                cryptopp-devel              \
+                libxml2-devel               \
+                xfsprogs-devel              \
+                gnutls-devel                \
+                lksctp-tools-devel          \
+                lz4-devel                   \
+                valgrind-devel              \
+                valgrind                    \
+                libasan                     \
+                python2-pip pbzip2          
+
+RUN dnf install -y          \
+               git          \
+               lsof         \
+               net-tools    \
+               zsh          \
+               nc           \
+               tcpdump      \
+               npm          \
+               ant          \
+               telnet       \
+               whois        \
+               traceroute   \
+               mtr          \
+               wget         \
+               iptables     \
+               ipset        \
+               gdb          
+
+RUN dnf --disablerepo="*" --nogpgcheck --enablerepo="epel" install -y libidn2-devel
+
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-Linux-x86_64.sh \
+      -q -O /tmp/cmake-install.sh                                                                \
+      && chmod u+x /tmp/cmake-install.sh                                                         \
+      && mkdir /usr/bin/cmake                                                                    \
+      && /tmp/cmake-install.sh --skip-license --prefix=/usr/bin/cmake                            \
+      && rm /tmp/cmake-install.sh
+
+ENV PATH="/usr/bin/cmake/bin:${PATH}"
+RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN wget http://ftp.gnu.org/gnu/gcc/gcc-11.2.0/gcc-11.2.0.tar.gz && \
+    tar zxvf gcc-11.2.0.tar.gz && \ 
+    pushd gcc-11.2.0           && \
+    ./contrib/download_prerequisites   && \
+    ./configure -enable-checking=release -enable-languages=c,c++ -disable-multilib && \
+    make -j16     && \
+    make install  && \
+    popd          && \
+    rm -rf gcc-11.2.*
+
+
+RUN echo 'export PATH=/usr/local/bin:$PATH' >> /root/.bashrc &&                             \ 
+    echo 'export LD_LIBRARY_PATH=/usr/local/lib64' >> /root/.bashrc &&                      \
+    echo 'export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH' >> /root/.bashrc &&       \
+    echo 'export CC=/usr/local/bin/gcc' >> /root/.bashrc &&                                 \
+    echo 'export CXX=/usr/local/bin/g++' >> /root/.bashrc &&                                \
+    echo "alias wget='wget --no-check-certificate'" >> /root/.bashrc &&                     \
+    echo "alias ll='ls -l'" >> /root/.bashrc &&                                             \             
+    echo "alias vim=vi" >> /root/.bashrc
+RUN mkdir -p /root/.ssh

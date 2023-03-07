@@ -1,0 +1,12 @@
+/src/
+/build/
+/built/
+/packages/
+/bin/
+/lib/
+/lib64/
+/include/
+/doc/
+/man/
+/share/
+*.swp

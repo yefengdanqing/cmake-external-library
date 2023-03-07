@@ -1,0 +1,76 @@
+ARG base_centos_image_tag
+FROM $base_centos_image_tag
+MAINTAINER yangrui
+
+RUN export LANG=en_US.UTF-8
+RUN export LC_CTYPE=en_US.UTF-8
+RUN yum install -y vim     \
+                python3-pip\
+                flex       \
+                bison      \
+                make       \
+                gcc10      \
+                gcc10-c++  \
+                ninja-build\
+                git        \
+                tar        \
+                unzip      \
+                zlib-devel \
+                patch      \
+                pbzip2     \
+                wget       \
+                autoconf   \
+                automake   \
+                libtool    \
+                libffi-devel        \
+                openssl-devel       \
+                readline-devel      \
+                gnutls-devel.x86_64 \
+                lksctp-tools-devel.x86_64 \
+                valgrind-devel.x86_64     \
+                hwloc-devel.x86_64        \
+                xfsprogs-devel.x86_64     \
+                systemtap-sdt-devel       \
+                numactl-libs              \
+                numactl-devel             \
+                libasan10-devel.x86_64    \
+                bzip2-devel   \
+                bzip2         \
+                sudo          \
+                gdb &&        \
+                yum clean all && rm -rf /var/cache/yum
+COPY docker/update-alternatives.sh /tmp
+RUN  sh /tmp/update-alternatives.sh && \
+     rm /tmp/update-alternatives.sh
+
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-Linux-x86_64.sh \
+      -q -O /tmp/cmake-install.sh                                                                \
+      && chmod u+x /tmp/cmake-install.sh                                                         \
+      && mkdir /usr/bin/cmake                                                                    \
+      && /tmp/cmake-install.sh --skip-license --prefix=/usr/bin/cmake                            \
+      && rm /tmp/cmake-install.sh
+
+RUN rm -rf /usr/bin/cmake3  &&  \
+    pushd /usr/bin/cmake/bin && \
+    ln -s cmake cmake3  &&      \
+    popd
+RUN pip3 install -U awscli==1.19.76 awscli-plugin-endpoint wheel
+RUN echo 'export PATH=/usr/local/bin:/usr/bin/cmake/bin:$PATH' >> /root/.bashrc &&          \
+    echo 'export LD_LIBRARY_PATH=/usr/local/lib64' >> /root/.bashrc &&                      \
+    echo 'export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH' >> /root/.bashrc &&       \
+    echo 'export CC=/usr/local/bin/gcc' >> /root/.bashrc &&                                 \
+    echo 'export CXX=/usr/local/bin/g++' >> /root/.bashrc &&                                \
+    echo 'export CMAKE_MAKE_PROGRAM=ninja' >> /root/.bashrc &&                              \
+    echo "alias wget='wget --no-check-certificate'" >> /root/.bashrc &&                     \
+    echo "alias ll='ls -l'" >> /root/.bashrc &&                                             \             
+    echo "alias ninja='ninja-build'" >> /root/.bashrc &&                                    \ 
+    echo "alias vim=vi" >> /root/.bashrc 
+RUN mkdir -p /root/.ssh &&                                                                  \
+    echo 'gitlab.mobvista.com,52.79.132.161 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBI3YH1X8/OoaMu7GsCa6bYEFTIim05+qYLzOP0EvMYhQqO5w9AqI7yTbcLJJFUmAZJx5DIYjL1Rh+XfICL+mikM=' \
+    > /root/.ssh/known_hosts
+
+COPY docker/config     /root/.ssh/config
+COPY docker/pub-deploy /root/.ssh/pub-deploy
+RUN chmod 400 /root/.ssh/pub-deploy     \
+&&  chmod 600 /root/.ssh/known_hosts    \
+&&  chmod 600 /root/.ssh/config

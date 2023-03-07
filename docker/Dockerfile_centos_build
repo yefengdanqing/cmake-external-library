@@ -1,0 +1,81 @@
+ARG base_centos_image_tag
+FROM $base_centos_image_tag
+
+RUN export LANG=en_US.UTF-8    \
+&& export LC_CTYPE=en_US.UTF-8 \
+&& export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/compat
+
+RUN yum install http://opensource.wandisco.com/centos/7/git/x86_64/wandisco-git-release-7-2.noarch.rpm -y \
+&&  yum install git patch wget which epel-release -y                                                      \
+&&  curl -o /etc/yum.repos.d/scylla.repo -L http://repositories.scylladb.com/scylla/repo/5bd5b1ae-74f9-44fb-888f-8f460ca9328e/centos/scylladb-3.0.repo
+RUN yum install -y --enablerepo=epel        \
+                scylla-binutils             \
+                ninja-build ragel-devel     \
+                scylla-gcc73-c++            \
+                scylla-libubsan73-static    \
+                scylla-libasan73-static     \
+                scylla-libstdc++73-static   \
+                scylla-liblsan73            \
+                gnutls-devel                \
+                which sudo                  \
+                libunistring snappy-devel   \
+                byacc bison flex libtool    \
+                systemtap-sdt-devel         \
+                patchelf openssl-devel      \
+                cryptopp-devel xz-devel     \
+                lksctp-tools-devel          \
+                xfsprogs-devel libffi-devel \
+                glibc-headers glibc-static  \
+                bzip2 bzip2-devel           \
+                python2-pip pbzip2          \
+                numactl-libs                \
+                unzip                       \
+                deltarpm                    \
+                ca-certificates             \
+                zlib-devel zlib-static
+RUN yum --disablerepo="*" --enablerepo="epel" install -y libidn2-devel \
+
+&& python -m pip install --upgrade \
+&& pip install -U awscli==1.19.76 awscli-plugin-endpoint wheel==0.37.1  \
+&& yum clean all
+
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-Linux-x86_64.sh \
+      -q -O /tmp/cmake-install.sh                                                                \
+      && chmod u+x /tmp/cmake-install.sh                                                         \
+      && mkdir /usr/bin/cmake                                                                    \
+      && /tmp/cmake-install.sh --skip-license --prefix=/usr/bin/cmake                            \
+      && rm /tmp/cmake-install.sh
+
+ENV PATH="/usr/bin/cmake/bin:${PATH}"
+
+RUN rm -rf /usr/bin/cmake3  &&  \
+    pushd /usr/bin/cmake/bin && \
+    ln -s cmake cmake3  &&      \
+    popd
+
+RUN pushd /opt/scylladb/bin &&  \
+    ln -s cc-7.3 cc &&          \
+    ln -s gcc-7.3 gcc &&        \
+    ln -s g++-7.3 g++ &&        \
+    popd
+
+RUN echo 'export PATH=/usr/bin/cmake/bin:$PATH' > /root/.bashrc &&                          \
+    echo 'export PATH=/opt/scylladb/bin:$PATH' >> /root/.bashrc &&                          \
+    echo 'export LD_LIBRARY_PATH=/usr/local/lib64' >> /root/.bashrc &&                      \
+    echo 'export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH' >> /root/.bashrc &&       \
+    echo 'export LD_LIBRARY_PATH=/opt/scylladb/lib64:$LD_LIBRARY_PATH' >> /root/.bashrc &&  \
+    echo 'export LD_LIBRARY_PATH=/opt/scylladb/lib:$LD_LIBRARY_PATH' >> /root/.bashrc &&    \
+    echo 'export CC=/opt/scylladb/bin/gcc' >> /root/.bashrc &&                              \
+    echo 'export CXX=/opt/scylladb/bin/g++' >> /root/.bashrc &&                             \
+    echo "alias wget='wget --no-check-certificate'" >> /root/.bashrc &&                     \
+    echo "alias ll='ls -l'" >> /root/.bashrc
+
+RUN mkdir -p /root/.ssh \
+&& echo 'gitlab.mobvista.com,52.79.132.161 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBI3YH1X8/OoaMu7GsCa6bYEFTIim05+qYLzOP0EvMYhQqO5w9AqI7yTbcLJJFUmAZJx5DIYjL1Rh+XfICL+mikM=' \
+    > /root/.ssh/known_hosts
+
+COPY docker/config     /root/.ssh/config
+COPY docker/pub-deploy /root/.ssh/pub-deploy
+RUN chmod 400 /root/.ssh/pub-deploy \
+&&  chmod 600 /root/.ssh/known_hosts \
+&&  chmod 600 /root/.ssh/config

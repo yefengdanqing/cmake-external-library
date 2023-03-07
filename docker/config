@@ -1,0 +1,2 @@
+Host "gitlab.mobvista.com"
+IdentityFile "~/.ssh/pub-deploy"

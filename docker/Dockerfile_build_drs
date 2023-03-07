@@ -1,0 +1,22 @@
+FROM centos:8
+ARG GO_VERSION
+
+
+RUN yum install tar unzip zip git patch wget gcc gcc-c++ -y 
+RUN wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz >/dev/null 2>&1  \
+    && tar -zxvf go${GO_VERSION}.linux-amd64.tar.gz >/dev/null \
+    && rm -f go${GO_VERSION}.linux-amd64.tar.gz
+
+
+RUN echo 'export PATH=/go/bin/:$PATH' > /root/.bashrc &&  \
+    echo "alias ll='ls -l'" >> /root/.bashrc
+
+RUN mkdir -p /root/.ssh \
+&& echo 'gitlab.mobvista.com,52.79.132.161 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBI3YH1X8/OoaMu7GsCa6bYEFTIim05+qYLzOP0EvMYhQqO5w9AqI7yTbcLJJFUmAZJx5DIYjL1Rh+XfICL+mikM=' \
+    > /root/.ssh/known_hosts
+
+COPY docker/config     /root/.ssh/config
+COPY docker/pub-deploy /root/.ssh/pub-deploy
+RUN chmod 400 /root/.ssh/pub-deploy \
+&&  chmod 600 /root/.ssh/known_hosts \
+&&  chmod 600 /root/.ssh/config

@@ -1,0 +1,15 @@
+ARG thirdparty_build_image_tag
+
+FROM $thirdparty_build_image_tag as STAGE_0
+
+ARG external_url
+ARG external_file_name
+
+RUN mkdir -p /data/code/ml-platform-thirdparty
+RUN aws s3 cp ${external_url} ${external_file_name} \
+    && tar --use-compress-program=pbzip2 -xf ${external_file_name} -C /data/code/ml-platform-thirdparty \
+    && rm -f ${external_file_name}
+
+FROM $thirdparty_build_image_tag
+RUN mkdir -p /data/code/
+COPY --from=STAGE_0 /data/code/ml-platform-thirdparty /data/code/ml-platform-thirdparty

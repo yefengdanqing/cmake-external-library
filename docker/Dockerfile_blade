@@ -1,0 +1,25 @@
+ARG nvidia_base
+FROM $nvidia_base
+
+ARG torch
+ARG torchvision
+ARG torch_addons 
+ARG pai_build_gpu
+ARG blade_repo_url 
+Run yum install -y centos-release-scl && yum install -y devtoolset-7
+RUN yum install -y      \
+      python3           \
+      wget              \
+      sudo
+RUN yum install -y python3-pip &&                                 \
+        python3 -m pip install --upgrade --force-reinstall pip && \
+        sudo pip3 install --no-cache-dir torch==${torch} torchvision==${torchvision} -f https://download.pytorch.org/whl/torch_stable.html && \
+        sudo pip3 install --no-cache-dir torch_addons==${torch_addons} pai-blade-gpu==${pai_build_gpu} -f ${blade_repo_url}
+
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-Linux-x86_64.sh \
+      -q -O /tmp/cmake-install.sh                                                                \
+      && chmod u+x /tmp/cmake-install.sh                                                         \
+      && mkdir /usr/bin/cmake                                                                    \
+      && /tmp/cmake-install.sh --skip-license --prefix=/usr/bin/cmake                            \
+      && rm /tmp/cmake-install.sh
+ENV PATH="/usr/bin/cmake/bin:${PATH}"
